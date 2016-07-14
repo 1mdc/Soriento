@@ -18,18 +18,18 @@ object RichODatabaseDocumentImpl {
 
   implicit class RichODatabaseDocumentTx(db: ODatabaseDocument) {
 
-    def queryDocumentsBySql(sql: String): List[ODocument] = blockingCall { db =>
-      val results: java.util.List[ODocument] = db.query(new OSQLSynchQuery[ODocument](sql))
+    def queryDocumentsBySql(sql: String, args:AnyRef*): List[ODocument] = blockingCall { db =>
+      val results: java.util.List[ODocument] = db.query(if(args.size > 0) new OSQLSynchQuery[ODocument](sql).execute(args) else new OSQLSynchQuery[ODocument](sql))
       results.toList
     }
 
-    def queryBySql[T](query: String)(implicit reader: ODocumentReader[T]): List[T] = blockingCall { db =>
-      val results: java.util.List[ODocument] = db.query(new OSQLSynchQuery[ODocument](query))
+    def queryBySql[T](query: String, args:AnyRef*)(implicit reader: ODocumentReader[T]): List[T] = blockingCall { db =>
+      val results: java.util.List[ODocument] = db.query(if(args.size > 0) new OSQLSynchQuery[ODocument](query).execute(args) else new OSQLSynchQuery[ODocument](query))
       results.toList.map(document => reader.read(document))
     }
 
-    def command(query: String): OCommandRequest = blockingCall { db =>
-      db.command[OCommandRequest](new OCommandSQL(query)).execute() //type annotation of return?
+    def command(query: String, args:AnyRef*): OCommandRequest = blockingCall { db =>
+      db.command[OCommandRequest](if(args.size > 0) new OCommandSQL(query).execute(args) else new OCommandSQL(query)).execute() //type annotation of return?
     }
 
     def saveAs[T](oDocument: ODocument)(implicit reader: ODocumentReader[T]): Option[T] = blockingCall { db =>
@@ -72,13 +72,18 @@ object RichODatabaseDocumentImpl {
       }
     }
 
-    def asyncQueryBySql(sql: String): Future[List[ODocument]] = asyncCall { internalDb =>
-      val results: java.util.List[ODocument] = internalDb.query(new OSQLSynchQuery[ODocument](sql))
+    def asyncQueryBySql(sql: String, args:AnyRef*): Future[List[ODocument]] = asyncCall { internalDb =>
+      val results: java.util.List[ODocument] = internalDb.query(if(args.size > 0) new OSQLSynchQuery[ODocument](sql).execute(args) else new OSQLSynchQuery[ODocument](sql))
       results.toList
     }
 
-    def asyncQueryBySql[T](query: String)(implicit reader: ODocumentReader[T]): Future[List[T]] = asyncCall { internalDb =>
-      val results: java.util.List[ODocument] = internalDb.query(new OSQLSynchQuery[ODocument](query))
+    def asyncQueryBySql[T](query: String, args:AnyRef*)(implicit reader: ODocumentReader[T]): Future[List[T]] = asyncCall { internalDb =>
+      val results: java.util.List[ODocument] = internalDb.query(
+        if(args.size > 0)
+          new OSQLSynchQuery[ODocument](query).execute(args)
+        else
+          new OSQLSynchQuery[ODocument](query)
+        )
       results.toList.map(document => reader.read(document))
     }
 
